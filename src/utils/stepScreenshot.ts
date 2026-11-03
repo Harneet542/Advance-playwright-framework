@@ -13,7 +13,7 @@ import { test, type Page } from '@playwright/test';
  *   import { shot } from '../../utils/stepScreenshot';
  *
  *   await test.step('open the cart', async () => {
- *       await inventoryPage.openCart();
+ *       await cartPage.open();
  *       await shot(page, 3, 'cart');
  *   });
  */

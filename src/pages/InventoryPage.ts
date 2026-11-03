@@ -1,38 +1,34 @@
-import { type Locator, type Page } from '@playwright/test';
+import { expect, Locator, Page } from '@playwright/test';
+import { BasePage } from './BasePage';
 
-export class Inventorypage {
-  readonly page: Page;
-  readonly title: Locator;
-  readonly firstItemName: Locator;
-  readonly firstItemAddToCart: Locator;
-  readonly cartLink: Locator;
+/** TTACart product listing. */
+export class InventoryPage extends BasePage {
+    static readonly PATH = '/playwright/ttacart/inventory';
 
-  constructor(page: Page) {
-    this.page = page;
+    readonly title: Locator;
+    readonly items: Locator;
 
-    // TTACart tags elements with data-test, not Playwright's default
-    // data-testid, so the page object owns that detail instead of making
-    // every spec declare test.use({ testIdAttribute: 'data-test' }).
-    const byTest = (id: string) => page.locator(`[data-test="${id}"]`);
+    constructor(page: Page) {
+        super(page, 'InventoryPage');
+        this.title = page.locator('[data-test="title"]');
+        this.items = page.locator('[data-test="inventory-item"]');
+    }
 
-    this.title = byTest('title');
-    this.firstItemName = byTest('inventory-item-name').first();
-    this.firstItemAddToCart = page.getByRole('button', { name: 'Add to cart' }).first();
-    this.cartLink = byTest('shopping-cart-link');
-  }
+    async open(): Promise<void> {
+        await this.goto(InventoryPage.PATH);
+        await this.assertLoaded();
+    }
 
-  async goto() {
-    await this.page.goto('https://app.thetestingacademy.com/playwright/ttacart/inventory');
-  }
+    async assertLoaded(): Promise<void> {
+        await expect(this.page).toHaveURL(/\/inventory/);
+        await expect(this.title).toHaveText('Products');
+        await expect(this.items.first()).toBeVisible();
+    }
 
-  /** Adds the first product and returns its name, so the test can assert on it. */
-  async addFirstItemToCart(): Promise<string> {
-    const name = (await this.firstItemName.innerText()).trim();
-    await this.firstItemAddToCart.click();
-    return name;
-  }
-
-  async openCart() {
-    await this.cartLink.click();
-  }
+    /** Adds a product by its id, e.g. 'test-allthethings-tshirt-red'. */
+    async addToCart(itemId: string): Promise<void> {
+        await this.el.click(`[data-test="add-to-cart-${itemId}"]`);
+        // The button flips to "Remove" once the item is really in the cart.
+        await this.el.waitForVisible(`[data-test="remove-${itemId}"]`);
+    }
 }

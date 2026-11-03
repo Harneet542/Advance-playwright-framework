@@ -1,36 +1,49 @@
-// Login
-import { Page, Locator, expect } from '@playwright/test';
+import { expect, Locator, Page } from '@playwright/test';
+import { BasePage } from './BasePage';
 
-export class LoginPage {
-    // Page Locators
-    readonly page: Page;
+/** TTACart login screen. */
+export class LoginPage extends BasePage {
+    static readonly PATH = '/playwright/ttacart/';
+
     readonly emailInput: Locator;
     readonly passwordInput: Locator;
     readonly loginButton: Locator;
+    readonly errorBox: Locator;
 
     constructor(page: Page) {
-        this.page = page;
-        this.emailInput = page.getByRole("textbox", { name: "Username" });
-        this.passwordInput = page.getByRole("textbox", { name: "Password" })
+        super(page, 'LoginPage');
+        this.emailInput = page.getByRole('textbox', { name: 'Username' });
+        this.passwordInput = page.getByRole('textbox', { name: 'Password' });
         // TTACart uses data-test, not Playwright's default data-testid.
         this.loginButton = page.locator('[data-test="login-button"]');
+        this.errorBox = page.locator('[data-test="error"]');
     }
 
-    // Page Actions
-    async goto() {
-        await this.page.goto('https://app.thetestingacademy.com/playwright/ttacart/');
+    async open(): Promise<void> {
+        await this.goto(LoginPage.PATH);
     }
 
-    async login(username: string, password: string) {
-        await this.emailInput.fill(username);
-        await this.passwordInput.fill(password);
-        await this.loginButton.click();
+    async loginAs(username: string, password: string): Promise<void> {
+        await this.el.fill(this.emailInput, username);
+        await this.el.fill(this.passwordInput, password);
+        await this.el.click(this.loginButton);
     }
 
+    async expectErrorContains(text: string): Promise<void> {
+        await expect(this.errorBox).toBeVisible();
+        await expect(this.errorBox).toContainText(text);
+    }
 
+    async waitForLoginButtonHidden(): Promise<void> {
+        await this.el.waitForHidden(this.loginButton);
+    }
 
+    // Older names, kept so existing specs (Login.spec.ts) keep working.
+    override async goto(relativePath: string = LoginPage.PATH): Promise<void> {
+        await super.goto(relativePath);
+    }
 
-
-
-
+    async login(username: string, password: string): Promise<void> {
+        await this.loginAs(username, password);
+    }
 }

@@ -1,25 +1,39 @@
-import { type Locator, type Page } from '@playwright/test';
+import { expect, Locator, Page } from '@playwright/test';
+import { BasePage } from './BasePage';
 
-export class Cartpage {
-  readonly page: Page;
-  readonly title: Locator;
-  readonly itemName: Locator;
-  readonly itemPrice: Locator;
-  readonly checkout: Locator;
+/** TTACart cart. */
+export class CartPage extends BasePage {
+    static readonly PATH = '/playwright/ttacart/cart';
 
-  constructor(page: Page) {
-    this.page = page;
+    readonly title: Locator;
+    readonly rows: Locator;
+    readonly checkoutButton: Locator;
 
-    // TTACart uses data-test, not Playwright's default data-testid.
-    const byTest = (id: string) => page.locator(`[data-test="${id}"]`);
+    constructor(page: Page) {
+        super(page, 'CartPage');
+        const byTest = (id: string) => page.locator(`[data-test="${id}"]`);
 
-    this.title = byTest('title');
-    this.itemName = byTest('inventory-item-name');
-    this.itemPrice = byTest('inventory-item-price');
-    this.checkout = byTest('checkout');
-  }
+        this.title = byTest('title');
+        this.rows = byTest('inventory-item');
+        this.checkoutButton = byTest('checkout');
+    }
 
-  async goto() {
-    await this.page.goto('https://app.thetestingacademy.com/playwright/ttacart/cart');
-  }
+    async open(): Promise<void> {
+        await this.goto(CartPage.PATH);
+        await this.assertLoaded();
+    }
+
+    async assertLoaded(): Promise<void> {
+        await expect(this.page).toHaveURL(/\/cart/);
+        await expect(this.title).toHaveText('Your Cart');
+    }
+
+    // Retrying assertion: rows are rendered by JS after load, so an instant count reads 0.
+    async expectRowCount(expected: number): Promise<void> {
+        await expect(this.rows).toHaveCount(expected);
+    }
+
+    async checkout(): Promise<void> {
+        await this.el.click(this.checkoutButton);
+    }
 }
